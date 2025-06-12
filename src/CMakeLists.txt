@@ -28,3 +28,11 @@ target_compile_definitions("higher-order-bgn_curve" PRIVATE DUNE_GRID_PATH=\"${C
  dune_target_enable_all_packages(eoc_curve_test_ref)
  dune_default_include_directories(eoc_curve_test_ref PRIVATE)
  target_compile_definitions("eoc_curve_test_ref" PRIVATE DUNE_GRID_PATH=\"${CMAKE_CURRENT_SOURCE_DIR}/grids/\")
+
+ find_package(fmt REQUIRED)
+
+ add_executable(boxsurface boxsurface.cc)
+ target_link_dune_default_libraries(boxsurface)
+ dune_target_enable_all_packages(boxsurface)
+ dune_default_include_directories(boxsurface PRIVATE)
+ target_link_libraries(boxsurface PRIVATE fmt::fmt)
