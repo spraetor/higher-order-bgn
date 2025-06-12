@@ -15,7 +15,7 @@
 #include <dune/functions/functionspacebases/powerbasis.hh>
 #include <dune/functions/gridfunctions/discreteglobalbasisfunction.hh>
 #include <dune/grid/uggrid.hh>
-#include <dune/grid/utility/structuresgridfactory.hh>
+#include <dune/grid/utility/structuredgridfactory.hh>
 #include <dune/meshdist/hausdorffdistance.hh>
 
 #include "boundarygridfactory.hh"
@@ -83,7 +83,7 @@ int main(int argc, char *argv[])
   std::cout << "Compute a reference solution..." << std::endl;
   using namespace Dune::Functions::BasisFactory;
   auto feBasis = makeFlowBasis<2>(hostGrid->leafGridView());
-  auto solution = Dune::BGN::run<Flow>(pt, tau_ini, feBasis, identityMap, "output_ref.pvd", threadCount);
+  auto solution = run<Flow>(pt, tau_ini, feBasis, identityMap, "output2_ref.pvd", threadCount);
   auto positionBasis = Dune::Functions::subspaceBasis(feBasis, Dune::Indices::_0);
   auto X = Dune::Functions::makeDiscreteGlobalBasisFunction<Dune::FieldVector<double,3>>(positionBasis, solution);
 
@@ -91,7 +91,7 @@ int main(int argc, char *argv[])
   for (int level = 0; level <= maxLevel; ++level) {
     std::cout << "Compute solution on level " << level << " ..." << std::endl;
     auto feBasis0 = makeFlowBasis<2>(hostGrid->levelGridView(level));
-    auto solution0 = Dune::BGN::run<Flow>(pt, tau_ini,  feBasis0, identityMap, "output_" + std::to_string(level) + ".pvd", threadCount);
+    auto solution0 = run<Flow>(pt, tau_ini,  feBasis0, identityMap, "output2_" + std::to_string(level) + ".pvd", threadCount);
     auto positionBasis0 = Dune::Functions::subspaceBasis(feBasis0, Dune::Indices::_0);
     auto X0 = Dune::Functions::makeDiscreteGlobalBasisFunction<Dune::FieldVector<double,3>>(positionBasis0, solution0);
 
@@ -99,7 +99,7 @@ int main(int argc, char *argv[])
     std::cout << "error(" << level << ")  = " << error0  << std::endl;
 
     errs.push_back(error0);
-    hs.push_back(gridSize(hostGrid->levelGridView(level)));
+    hs.push_back(Dune::BGN::gridSize(hostGrid->levelGridView(level)));
   }
 
   Dune::printErrorsClassic(std::cout, hs, {"dist(G,Gh)"}, {errs});

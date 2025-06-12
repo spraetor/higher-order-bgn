@@ -79,7 +79,7 @@ auto run(Dune::ParameterTree const& pt, const double& tau,  const Basis& feBasis
   for (int step = 0; t + tau < endTime + tol; ++step, t+= tau)
   {
     std::cout << step << "/" << nSteps;
-    std::cout << " surface = " << surface(gridView, Xh);
+    std::cout << " surface = " << Dune::BGN::surface(gridView, Xh);
     std::cout << std::endl;
     if ((step+1) % std::max(1,nSteps/100) == 0) {
       pvdWriter.writeTimestep(t, outputFileName, "_piecefiles");
