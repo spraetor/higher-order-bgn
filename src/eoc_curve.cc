@@ -13,8 +13,15 @@
 #include <dune/gmsh4/gmsh4reader.hh>
 #include <dune/grid/common/gridfactory.hh>
 
-#include "mean_curvature_flow.hh"
 #include "runner.hh"
+
+#if FLOW == 1
+#include "mean_curvature_flow.hh"
+using GeometricFlow = Dune::BGN::MeanCurvatureFlow;
+#elif FLOW == 2
+#include "surface_diffusion.hh"
+using GeometricFlow = Dune::BGN::SurfaceDiffusion;
+#endif
 
 int main(int argc, char *argv[])
 {
@@ -29,28 +36,41 @@ int main(int argc, char *argv[])
   ParameterTreeParser::readINITree(inifile, pt);
 
   using HostGrid = FoamGrid<1,2>;
-  using Factory = GridFactory<HostGrid>;
 
-  int refinement = pt.get<int>("grid.initial.refinement", 10);
+  unsigned int refinement = pt.get<int>("grid.initial.refinement", 10);
+#if SURFACE == 1
   double radius = pt.get<double>("grid.initial.radius", 1.0);
+#elif SURFACE == 2
+  double a = pt.get<double>("grid.initial.a", 1.0);
+  double b = pt.get<double>("grid.initial.b", 1.0);
+#endif
 
-  Factory factory;
-  for (int i = 0; i < refinement; ++i) {
+  // create a circle grid by explicitly inserting vertices and connectivity
+  GridFactory<HostGrid> factory;
+  for (unsigned int i = 0; i < refinement; ++i) {
     double theta = i*2.0*M_PI/refinement;
+#if SURFACE == 1
     factory.insertVertex(FieldVector<double,2>{radius * std::cos(theta), radius * std::sin(theta)});
+#elif SURFACE == 2
+  factory.insertVertex(FieldVector<double,2>{a * std::cos(theta), b * std::sin(theta)});
+#endif
   }
-  for (int i = 0; i < refinement; ++i) {
+  for (unsigned int i = 0; i < refinement; ++i) {
     factory.insertElement({i, (i+1)%refinement}, GeometryTypes::line);
   }
   auto hostGridPtr = factory.createGrid();
 
-  auto initialSurface = sphereGridFunction(radius);
+#if SURFACE == 1
+  auto initialSurface = SphereProjection<2,double>{radius};
+#elif SURFACE == 2
+  auto initialSurface = EllipseProjection<double>{a,b};
+#endif
 
   int kg = pt.get<int>("grid.kg", 2);
   switch (kg) {
-  case 1: run<1>(pt, *hostGridPtr, initialSurface, BGN::MeanCurvatureFlow{}); break;
-  case 2: run<2>(pt, *hostGridPtr, initialSurface, BGN::MeanCurvatureFlow{}); break;
-  case 3: run<3>(pt, *hostGridPtr, initialSurface, BGN::MeanCurvatureFlow{}); break;
+  case 1: run<1>(pt, *hostGridPtr, initialSurface, GeometricFlow{}); break;
+  case 2: run<2>(pt, *hostGridPtr, initialSurface, GeometricFlow{}); break;
+  case 3: run<3>(pt, *hostGridPtr, initialSurface, GeometricFlow{}); break;
   default:
     DUNE_THROW(NotImplemented, "call run<kg>(...) for your polynomial order.");
   }

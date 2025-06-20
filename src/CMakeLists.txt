@@ -36,3 +36,33 @@ target_compile_definitions("higher-order-bgn_curve" PRIVATE DUNE_GRID_PATH=\"${C
  dune_target_enable_all_packages(boxsurface)
  dune_default_include_directories(boxsurface PRIVATE)
  target_link_libraries(boxsurface PRIVATE fmt::fmt)
+
+# Experimental order of convergence for curve geometric flows
+foreach(FLOW 1 2)
+  foreach(SURFACE 1 2)
+    set(exe "eoc_curve_flow${FLOW}_surf${SURFACE}")
+    add_executable(${exe} eoc_curve.cc)
+    target_link_dune_default_libraries(${exe})
+    dune_target_enable_all_packages(${exe})
+    dune_default_include_directories(${exe} PRIVATE)
+    target_link_libraries(${exe} PRIVATE fmt::fmt)
+    target_compile_definitions(${exe} PRIVATE FLOW=${FLOW} SURFACE=${SURFACE})
+  endforeach()
+endforeach()
+
+
+# Experimental order of convergence for surfaces geometric flows
+foreach(FLOW 1 2)
+  foreach(SURFACE 1 2)
+    set(exe "eoc_surface_flow${FLOW}_surf${SURFACE}")
+    add_executable(${exe} eoc_surfac.cc)
+    target_link_dune_default_libraries(${exe})
+    dune_target_enable_all_packages(${exe})
+    dune_default_include_directories(${exe} PRIVATE)
+    target_link_libraries(${exe} PRIVATE fmt::fmt)
+    target_compile_definitions(${exe} PRIVATE FLOW=${FLOW} SURFACE=${SURFACE})
+  endforeach()
+endforeach()
+
+
+

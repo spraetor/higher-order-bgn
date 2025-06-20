@@ -10,8 +10,15 @@
 #include <dune/foamgrid/foamgrid.hh>
 #include <dune/gmsh4/gmsh4reader.hh>
 
-#include "mean_curvature_flow.hh"
 #include "runner.hh"
+
+#if FLOW == 1
+#include "mean_curvature_flow.hh"
+using GeometricFlow = Dune::BGN::MeanCurvatureFlow;
+#elif FLOW == 2
+#include "surface_diffusion.hh"
+using GeometricFlow = Dune::BGN::SurfaceDiffusion;
+#endif
 
 int main(int argc, char *argv[])
 {
@@ -25,19 +32,26 @@ int main(int argc, char *argv[])
   ParameterTree pt;
   ParameterTreeParser::readINITree(inifile, pt);
 
-  std::string gridFilename = pt.get<std::string>("grid.filename", DUNE_GRID_PATH "sphere_very_rough.msh")
+  std::string gridFilename = pt.get<std::string>("grid.filename", DUNE_GRID_PATH "sphere_very_rough.msh");
 
   using HostGrid = FoamGrid<2,3>;
   auto hostGridPtr = Gmsh4Reader<HostGrid>::createGridFromFile(gridFilename);
 
+#if SURFACE == 1
   double radius = pt.get<double>("grid.initial.radius", 1.0);
-  auto initialSurface = sphereGridFunction(radius);
+  auto initialSurface = SphereProjection<3,double>{radius};
+#elif SURFACE == 2
+  double a = pt.get<double>("grid.initial.a", 1.0);
+  double b = pt.get<double>("grid.initial.b", 1.0);
+  double c = pt.get<double>("grid.initial.c", 1.0);
+  auto initialSurface = EllipsoidProjection<double>{a,b,c};
+#endif
 
   int kg = pt.get<int>("grid.kg", 2);
   switch (kg) {
-  case 1: run<1>(pt, *hostGridPtr, initialSurface, BGN::MeanCurvatureFlow{}); break;
-  case 2: run<2>(pt, *hostGridPtr, initialSurface, BGN::MeanCurvatureFlow{}); break;
-  case 3: run<3>(pt, *hostGridPtr, initialSurface, BGN::MeanCurvatureFlow{}); break;
+  case 1: run<1>(pt, *hostGridPtr, initialSurface, GeometricFlow{}); break;
+  case 2: run<2>(pt, *hostGridPtr, initialSurface, GeometricFlow{}); break;
+  case 3: run<3>(pt, *hostGridPtr, initialSurface, GeometricFlow{}); break;
   default:
     DUNE_THROW(NotImplemented, "call run<kg>(...) for your polynomial order.");
   }
