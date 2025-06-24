@@ -52,7 +52,7 @@ int main(int argc, char *argv[])
 #if SURFACE == 1
     factory.insertVertex(FieldVector<double,2>{radius * std::cos(theta), radius * std::sin(theta)});
 #elif SURFACE == 2
-  factory.insertVertex(FieldVector<double,2>{a * std::cos(theta), b * std::sin(theta)});
+    factory.insertVertex(FieldVector<double,2>{a * std::cos(theta), b * std::sin(theta)});
 #endif
   }
   for (unsigned int i = 0; i < refinement; ++i) {
