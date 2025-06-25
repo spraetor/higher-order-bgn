@@ -10,14 +10,13 @@
 #include <dune/foamgrid/foamgrid.hh>
 #include <dune/gmsh4/gmsh4reader.hh>
 
-#include <dune/higher-order-bgn/eoc.hh>
+#include <dune/higher-order-bgn/picardrunner.hh>
 
 #if FLOW == 1
-#include <dune/higher-order-bgn/meancurvatureflow.hh>
-using GeometricFlow = Dune::BGN::MeanCurvatureFlow;
+static_assert(false, "Not Implemented");
 #elif FLOW == 2
-#include <dune/higher-order-bgn/surfacediffusion.hh>
-using GeometricFlow = Dune::BGN::SurfaceDiffusion;
+#include <dune/higher-order-bgn/surfacediffusionsp.hh>
+using GeometricFlow = Dune::BGN::SurfaceDiffusionSP;
 #endif
 
 int main(int argc, char *argv[])
@@ -49,9 +48,9 @@ int main(int argc, char *argv[])
 
   int kg = pt.get<int>("grid.kg", 2);
   switch (kg) {
-  case 1: eoc<1>(pt, *hostGridPtr, initialSurface, GeometricFlow{}); break;
-  case 2: eoc<2>(pt, *hostGridPtr, initialSurface, GeometricFlow{}); break;
-  case 3: eoc<3>(pt, *hostGridPtr, initialSurface, GeometricFlow{}); break;
+  case 1: run<1,PicardRunner>(pt, *hostGridPtr, initialSurface, GeometricFlow{}); break;
+  case 2: run<2,PicardRunner>(pt, *hostGridPtr, initialSurface, GeometricFlow{}); break;
+  case 3: run<3,PicardRunner>(pt, *hostGridPtr, initialSurface, GeometricFlow{}); break;
   default:
     DUNE_THROW(NotImplemented, "call eoc<kg>(...) for your polynomial order.");
   }

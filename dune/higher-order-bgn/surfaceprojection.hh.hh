@@ -1,20 +1,13 @@
-#include <config.h>
+#pragma once
 
 #include <cmath>
 
+#include <dune/common/fmatrix.hh>
 #include <dune/common/fvector.hh>
-#include <dune/common/parametertree.hh>
-#include <dune/common/parametertreeparser.hh>
+#include <dune/common/math.hh>
+#include <dune/curvedgrid/geometries/implicitsurface.hh>
 
-#include <dune/foamgrid/foamgrid.hh>
-
-#include <dune/gmsh4/gmsh4reader.hh>
-
-#include "Surface.hh"
-#include <dune/functions/gridfunctions/discreteglobalbasisfunction.hh>
-#include "implicitsurface.hh"
-
-using namespace Dune;
+namespace Dune::BGN {
 
 template <class T = double>
 class EllipsoidProjection
@@ -94,7 +87,7 @@ public:
 
 private:
   T a_, b_, c_;
-  SimpleImplicitSurfaceProjection<Phi> implicit_;
+  Dune::SimpleImplicitSurfaceProjection<Phi> implicit_;
 };
 
 template <class T = double>
@@ -139,7 +132,7 @@ public:
 
 private:
   T R_;
-  SimpleImplicitSurfaceProjection<Phi> implicit_;
+  Dune::SimpleImplicitSurfaceProjection<Phi> implicit_;
 };
 
 
@@ -179,7 +172,7 @@ class TorusProjection
   };
 
 public:
-  // \brief Construction of the torus function by major and minor radius
+  /// \brief Construction of the torus function by major and minor radius
   TorusProjection (T R, T r)
     : R_(R)
     , r_(r)
@@ -225,39 +218,4 @@ private:
   T R_, r_;
 };
 
-
-
-int main(int argc, char *argv[])
-{
-  MPIHelper::instance(argc, argv);
-
-  std::string inifile = "initial.ini";
-  if (argc > 1)
-    inifile = argv[1];
-
-  ParameterTree pt;
-  ParameterTreeParser::readINITree(inifile, pt);
-
-  // Construct a (flat) host grid from a grid file
-  //auto hostGrid = Gmsh4Reader<FoamGrid<2,3>>::createGridFromFile(DUNE_GRID_PATH "sphere.msh");
-  auto hostGrid = Gmsh4Reader<FoamGrid<2,3>>::createGridFromFile(DUNE_GRID_PATH "ellipsoid.msh");
-  //auto hostGrid = Gmsh4Reader<FoamGrid<2,3>>::createGridFromFile(DUNE_GRID_PATH "torus.msh");
-  //auto hostGrid = Gmsh4Reader<FoamGrid<2,3>>::createGridFromFile(DUNE_GRID_PATH "sphere_very_rough.msh");
-
-  int refinements = pt.get<int>("grid.refinement_levels", 1);
-  hostGrid->globalRefine(refinements);
-
-  // initial surface parametrization
-   double a = pt.get<double>("grid.initial.a", 2);
-   double b = pt.get<double>("grid.initial.b", 1);
-   double c = pt.get<double>("grid.initial.c", 1);
-  EllipsoidProjection Ellipsoid(a, b, c);
-
-  //double R = 1;
-  //SphereProjection Sphere(R);
-  // TorusProjection Torus(R,r);
-
-  run(pt, *hostGrid, Ellipsoid);
-  //run(pt, *hostGrid, Sphere);
-  //run(pt, *hostGrid, Torus);
-}
+} // end namespace Dune::BGN

@@ -13,7 +13,7 @@
 #include <dune/gmsh4/gmsh4reader.hh>
 #include <dune/grid/common/gridfactory.hh>
 
-#include <dune/higher-order-bgn/eoc.hh>
+#include <dune/higher-order-bgn/runner.hh>
 
 #if FLOW == 1
 #include <dune/higher-order-bgn/meancurvatureflow.hh>
@@ -68,10 +68,10 @@ int main(int argc, char *argv[])
 
   int kg = pt.get<int>("grid.kg", 2);
   switch (kg) {
-  case 1: eoc<1>(pt, *hostGridPtr, initialSurface, GeometricFlow{}); break;
-  case 2: eoc<2>(pt, *hostGridPtr, initialSurface, GeometricFlow{}); break;
-  case 3: eoc<3>(pt, *hostGridPtr, initialSurface, GeometricFlow{}); break;
+  case 1: run<1>(pt, *hostGridPtr, initialSurface, GeometricFlow{}); break;
+  case 2: run<2>(pt, *hostGridPtr, initialSurface, GeometricFlow{}); break;
+  case 3: run<3>(pt, *hostGridPtr, initialSurface, GeometricFlow{}); break;
   default:
-    DUNE_THROW(NotImplemented, "call eoc<kg>(...) for your polynomial order.");
+    DUNE_THROW(NotImplemented, "call run<kg>(...) for your polynomial order.");
   }
 }

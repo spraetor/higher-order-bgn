@@ -1,2 +1,19 @@
-#install headers
-install(FILES higher-order-bgn.hh DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/dune/higher-order-bgn)
+install(FILES
+  assembler.hh
+  boundarygridfactory.hh
+  curvediffusionsp.hh
+  curveprojection.hh
+  eoc.hh
+  flowbasis.hh
+  gridsize.hh
+  localfunctiongeometrydatacollector.hh
+  meancurvatureflow.hh
+  picardrunner.hh
+  printerrors.hh
+  runner.hh
+  runnerbase.hh
+  surfaceareavolume.hh
+  surfacediffusion.hh
+  surfacediffusionsp.hh
+  umfpack2.hh
+  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/dune/higher-order-bgn)

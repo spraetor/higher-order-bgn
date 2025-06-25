@@ -12,32 +12,26 @@
 
 namespace Dune::BGN {
 
-template <class LocalView, class GridFct1, class GridFct2, class GridFct3>
-class SDSPLocalAssembler
+template <class LocalView, class GridFct1, class GridFct2>
+class CDSPLocalAssembler
 {
   using GridView = typename LocalView::GridView;
   using Element = typename LocalView::Element;
   using LocalFct1 = std::decay_t<decltype(localFunction(std::declval<Dune::ResolveRef_t<GridFct1> const&>()))>;
   using LocalFct2 = std::decay_t<decltype(localFunction(std::declval<Dune::ResolveRef_t<GridFct2> const&>()))>;
-  using LocalFct3 = std::decay_t<decltype(localFunction(std::declval<Dune::ResolveRef_t<GridFct3> const&>()))>;
 
   static const int dim = Element::dimension;
   static const int dow = GridView::dimensionworld;
 
-
-  static auto perp (FieldMatrix<double,2,3> const& J)
+  static auto perp (FieldMatrix<double,1,2> const& J)
   {
-    return FieldVector<double,3>{
-      J[0][1] * J[1][2] - J[0][2] * J[1][1],
-      J[0][2] * J[1][0] - J[0][0] * J[1][2],
-      J[0][0] * J[1][1] - J[0][1] * J[1][0]};
-   }
+    return FieldVector<double,2>{ -J[0][1], J[0][0] };
+  }
 
 public:
   template <class Basis>
-  SDSPLocalAssembler (const Basis&, const GridFct1& X, const GridFct2& Xmid, const GridFct2& Xiter, int quadOrder, double tau)
+  CDSPLocalAssembler (const Basis&, const GridFct1& X, const GridFct2& Xiter, int quadOrder, double tau)
     : X_(X)
-    , Xmid_(Xmid)
     , Xiter_(Xiter)
     // , X_e(localFunction(Dune::resolveRef(X_)))
     , quadOrder_(quadOrder)
@@ -49,14 +43,12 @@ public:
     testLocalView_ = &testLocalView;
     trialLocalView_ = &trialLocalView;
     X_e.emplace(localFunction(Dune::resolveRef(X_)));
-    Xmid_e.emplace(localFunction(Dune::resolveRef(Xmid_)));
     Xiter_e.emplace(localFunction(Dune::resolveRef(Xiter_)));
   }
 
   void bindElement (const Element& element)
   {
     X_e->bind(element);
-    Xmid_e->bind(element);
     Xiter_e->bind(element);
   }
 
@@ -90,7 +82,6 @@ public:
     auto const& localFEmid = testLocalView_->tree().child(Indices::_0).child(0).finiteElement();
 
     auto geometry = Dune::LocalFunctionGeometry{referenceElement(e), *X_e};
-    auto geometry_mid = Dune::ParametrizedGeometry{referenceElement(e), localFEmid, *Xmid_e};
     auto geometry_iter = Dune::LocalFunctionGeometry{referenceElement(e), *Xiter_e};
 
     using namespace Dune::Indices;
@@ -111,10 +102,9 @@ public:
       const auto Jit = geometry.jacobianInverse(x);
 
       auto const J1 = geometry.jacobianTransposed(qp.position());
-      auto const J2 = geometry_mid.jacobianTransposed(qp.position());
-      auto const J3 = geometry_iter.jacobianTransposed(qp.position());
+      auto const J2 = geometry_iter.jacobianTransposed(qp.position());
 
-      const auto n_Picard = (perp(J1) + 4* perp(J2) + perp(J3)) / (6 * integrationElement);
+      const auto n_Picard = (perp(J1+J2)) / (2 * integrationElement);
 
       localFE.localBasis().evaluateFunction(x, values_);
       localFE.localBasis().evaluateJacobian(x, refJacobians_);
@@ -151,7 +141,6 @@ public:
   {
     testLocalView_ = &testLocalView;
     X_e.emplace(localFunction(Dune::resolveRef(X_)));
-    Xmid_e.emplace(localFunction(Dune::resolveRef(Xmid_)));
     Xiter_e.emplace(localFunction(Dune::resolveRef(Xiter_)));
   }
 
@@ -160,7 +149,6 @@ public:
   {
     using namespace Dune::Indices;
     auto geometry = Dune::LocalFunctionGeometry{referenceElement(e), *X_e};
-    auto geometry_mid = Dune::LocalFunctionGeometry{referenceElement(e), *Xmid_e};
     auto geometry_iter = Dune::LocalFunctionGeometry{referenceElement(e), *Xiter_e};
 
     const auto& node = testLocalView_->tree();
@@ -174,10 +162,9 @@ public:
       const auto dx = integrationElement * w;
 
       auto const J1 = geometry.jacobianTransposed(qp.position());
-      auto const J2 = geometry_mid.jacobianTransposed(qp.position());
-      auto const J3 = geometry_iter.jacobianTransposed(qp.position());
+      auto const J2 = geometry_iter.jacobianTransposed(qp.position());
 
-      const auto n_Picard = (perp(J1) + 4* perp(J2) + perp(J3)) / (6 * integrationElement);
+      const auto n_Picard = (perp(J1+J2)) / (2 * integrationElement);
 
       localFE.localBasis().evaluateFunction(x, values_);
 
@@ -191,10 +178,8 @@ public:
 
 private:
   GridFct1 X_;
-  GridFct2 Xmin_;
   GridFct3 Xiter_;
   std::optional<LocalFct1> X_e;
-  std::optional<LocalFct2> Xmid_e;
   std::optional<LocalFct3> Xiter_e;
   int quadOrder_;
   double tau_;
@@ -206,18 +191,18 @@ private:
   std::vector<Dune::FieldVector<double,1>> values_;
 };
 
-template <class Basis, class GridFct1, class GridFct2, class GridFct3>
-SDSPLocalAssembler(const Basis&, const GridFct1&, const GridFct2&, const GridFct3&, int, double)
-  -> SDSPLocalAssembler<typename Basis::LocalView, GridFct1, GridFct2, GridFct2>;
+template <class Basis, class GridFct1, class GridFct2>
+CDSPLocalAssembler(const Basis&, const GridFct1&, const GridFct2&, int, double)
+  -> CDSPLocalAssembler<typename Basis::LocalView, GridFct1, GridFct2>;
 
-struct SurfaceDiffusionSP
+struct CurveDiffusionSP
 {
   template <class Basis, class GridFct, class GridFct2>
-  auto operator() (const Basis& basis, const GridFct1& X, const GRidFct3& Xiter, int quadOrder, double tau) const
+  auto operator() (const Basis& basis, const GridFct1& X, const GRidFct2& Xiter, int quadOrder, double tau) const
   {
     auto Xmid = Dune::Functions::makeComposedGridFunction([](auto X_x,auto X_iter_x){
       return (X_x + X_iter_x)/2.0;}, X, Xiter);
-    return SDSPLocalAssembler{basis, X, Xmid, Xiter, quadOrder,tau};
+    return CDSPLocalAssembler{basis, X, Xmid, Xiter, quadOrder,tau};
   }
 };
 
