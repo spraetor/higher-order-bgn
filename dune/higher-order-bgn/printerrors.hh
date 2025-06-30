@@ -43,7 +43,7 @@ namespace Impl {
     // print the headlines
     std::vector<std::pair<std::string,std::string>> headlines;
     for (std::size_t j = 0; j < names.size(); ++j)
-      headlines.push_back(std::make_pair<std::string,std::string>(names[j], "(eoc) "));
+      headlines.push_back(std::make_pair(names[j], "(eoc) "));
 
     print_line("lev", "h", headlines);
     print_break(headlines.size());
@@ -52,7 +52,6 @@ namespace Impl {
     for (std::size_t i = 0; i < widths.size(); ++i) {
       std::vector<std::pair<std::string,std::string>> data;
       for (std::size_t j = 0; j < errors.size(); ++j) {
-        std::string
         data.push_back(std::make_pair(
           string_format("%8.4e",errors[j][i]),
           string_format("%6.3f",eocs[j][i]))

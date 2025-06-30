@@ -7,12 +7,13 @@
 #include <dune/common/parametertree.hh>
 #include <dune/common/parametertreeparser.hh>
 #include <dune/common/parallel/mpihelper.hh>
-#include <dune/curvedgeometry/geometries/sphere.hh>
+#include <dune/curvedgrid/geometries/sphere.hh>
 #include <dune/foamgrid/foamgrid.hh>
-#include <dune/geometry/types.hh>
+#include <dune/geometry/type.hh>
 #include <dune/gmsh4/gmsh4reader.hh>
 #include <dune/grid/common/gridfactory.hh>
 
+#include <dune/higher-order-bgn/curveprojection.hh>
 #include <dune/higher-order-bgn/runner.hh>
 
 #if FLOW == 1
@@ -56,14 +57,14 @@ int main(int argc, char *argv[])
 #endif
   }
   for (unsigned int i = 0; i < refinement; ++i) {
-    factory.insertElement({i, (i+1)%refinement}, GeometryTypes::line);
+    factory.insertElement(GeometryTypes::line, {i, (i+1)%refinement});
   }
   auto hostGridPtr = factory.createGrid();
 
 #if SURFACE == 1
   auto initialSurface = SphereProjection<2,double>{radius};
 #elif SURFACE == 2
-  auto initialSurface = EllipseProjection<double>{a,b};
+  auto initialSurface = BGN::EllipseProjection<double>{a,b};
 #endif
 
   int kg = pt.get<int>("grid.kg", 2);

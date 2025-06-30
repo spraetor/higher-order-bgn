@@ -9,13 +9,14 @@
 #include <dune/assembler/defaultglobalassembler.hh>
 #include <dune/assembler/parallel/gridcoloring.hh>
 #include <dune/assembler/parallel/coloredrangeexecutor.hh>
+#include <dune/common/parametertree.hh>
 
 namespace Dune::BGN {
 
 template <class Basis>
 struct DefaultAssembler : public Dune::Assembler::Assembler<Basis,Basis>
 {
-  DefaultAssembler (const Basis& feBasis, const Dune::ParameterStree& /*pt*/)
+  DefaultAssembler (const Basis& feBasis, const Dune::ParameterTree& /*pt*/)
     : Dune::Assembler::Assembler<Basis,Basis>(feBasis,feBasis)
   {}
 };
@@ -30,39 +31,34 @@ struct ThreadAssembler
   using Assembler = Dune::Assembler::Assembler<Basis,Basis,Executor>;
 
 public:
-  ThreadAssembler (const Basis& feBasis, const Dune::ParameterStree& pt)
-    : coloredRange_(Dune::Assembler::Experimental::coloredElementRange(feBasis_.gridView()))
+  ThreadAssembler (const Basis& feBasis, const Dune::ParameterTree& pt)
+    : coloredRange_(Dune::Assembler::Experimental::coloredElementRange(feBasis.gridView()))
     , executor_(Dune::Assembler::Experimental::ColoredRangeExecutor(coloredRange_,
         pt.get<std::size_t>("thread_count",std::thread::hardware_concurrency())))
-    , assembler_(Dune::Assembler::Assembler(feBasis_, feBasis_, executor_))
+    , assembler_(Dune::Assembler::Assembler(feBasis, feBasis, executor_))
   {}
 
   template <class LA, class PB>
-  void assembleMatrixPattern (LA const& localAssembler, PB& patternBuilder)
+  void assembleMatrixPattern (LA& localAssembler, PB& patternBuilder)
   {
     assembler_.assembleMatrixPattern(localAssembler, patternBuilder);
   }
 
   template <class LA, class MB>
-  void assembleMatrixEntries (LA const& localAssembler, MB& matrixBackend)
+  void assembleMatrixEntries (LA& localAssembler, MB& matrixBackend)
   {
     assembler_.assembleMatrixEntries(localAssembler, matrixBackend);
   }
 
   template <class LA, class VB>
-  void assembleMatrixEntries (LA const& localAssembler, VB& rhsBackend)
+  void assembleVectorEntries (LA& localAssembler, VB& rhsBackend)
   {
     assembler_.assembleVectorEntries(localAssembler, rhsBackend);
   }
 
 private:
-  using ColoredRange = decltype(Dune::Assembler::Experimental::coloredElementRange(std::declval<GridView>()));
   ColoredRange coloredRange_;
-
-  using Executor = Dune::Assembler::Experimental::ColoredRangeExecutor<ColoredRange>;
   Executor executor_;
-
-  using Assembler = Dune::Assembler::Assembler<Basis,Basis,Executor>;
   Assembler assembler_;
 };
 

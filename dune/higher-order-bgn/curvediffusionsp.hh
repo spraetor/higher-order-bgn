@@ -6,7 +6,9 @@
 #include <dune/common/fmatrix.hh>
 #include <dune/common/fvector.hh>
 #include <dune/common/rangeutilities.hh>
+#include <dune/common/referencehelper.hh>
 #include <dune/curvedgeometry/localfunctiongeometry.hh>
+#include <dune/functions/gridfunctions/composedgridfunction.hh>
 #include <dune/geometry/quadraturerules.hh>
 
 
@@ -79,8 +81,6 @@ public:
   template <class LocalMatrix>
   void assembleElementMatrix (const Element& e, LocalMatrix& localMatrix)
   {
-    auto const& localFEmid = testLocalView_->tree().child(Indices::_0).child(0).finiteElement();
-
     auto geometry = Dune::LocalFunctionGeometry{referenceElement(e), *X_e};
     auto geometry_iter = Dune::LocalFunctionGeometry{referenceElement(e), *Xiter_e};
 
@@ -101,8 +101,8 @@ public:
       const auto dx = integrationElement * w;
       const auto Jit = geometry.jacobianInverse(x);
 
-      auto const J1 = geometry.jacobianTransposed(qp.position());
-      auto const J2 = geometry_iter.jacobianTransposed(qp.position());
+      auto const J1 = geometry.jacobianTransposed(x);
+      auto const J2 = geometry_iter.jacobianTransposed(x);
 
       const auto n_Picard = (perp(J1+J2)) / (2 * integrationElement);
 
@@ -161,8 +161,8 @@ public:
       const auto integrationElement = geometry.integrationElement(x);
       const auto dx = integrationElement * w;
 
-      auto const J1 = geometry.jacobianTransposed(qp.position());
-      auto const J2 = geometry_iter.jacobianTransposed(qp.position());
+      auto const J1 = geometry.jacobianTransposed(x);
+      auto const J2 = geometry_iter.jacobianTransposed(x);
 
       const auto n_Picard = (perp(J1+J2)) / (2 * integrationElement);
 
@@ -178,9 +178,9 @@ public:
 
 private:
   GridFct1 X_;
-  GridFct3 Xiter_;
+  GridFct2 Xiter_;
   std::optional<LocalFct1> X_e;
-  std::optional<LocalFct3> Xiter_e;
+  std::optional<LocalFct2> Xiter_e;
   int quadOrder_;
   double tau_;
 
@@ -197,12 +197,10 @@ CDSPLocalAssembler(const Basis&, const GridFct1&, const GridFct2&, int, double)
 
 struct CurveDiffusionSP
 {
-  template <class Basis, class GridFct, class GridFct2>
-  auto operator() (const Basis& basis, const GridFct1& X, const GRidFct2& Xiter, int quadOrder, double tau) const
+  template <class Basis, class GridFct1, class GridFct2>
+  auto operator() (const Basis& basis, const GridFct1& X, const GridFct2& Xiter, int quadOrder, double tau) const
   {
-    auto Xmid = Dune::Functions::makeComposedGridFunction([](auto X_x,auto X_iter_x){
-      return (X_x + X_iter_x)/2.0;}, X, Xiter);
-    return CDSPLocalAssembler{basis, X, Xmid, Xiter, quadOrder,tau};
+    return CDSPLocalAssembler{basis, X, Xiter, quadOrder,tau};
   }
 };
 

@@ -6,11 +6,12 @@
 #include <dune/common/parametertree.hh>
 #include <dune/common/parametertreeparser.hh>
 #include <dune/common/parallel/mpihelper.hh>
-#include <dune/curvedgeometry/geometries/sphere.hh>
+#include <dune/curvedgrid/geometries/sphere.hh>
 #include <dune/foamgrid/foamgrid.hh>
 #include <dune/gmsh4/gmsh4reader.hh>
 
 #include <dune/higher-order-bgn/runner.hh>
+#include <dune/higher-order-bgn/surfaceprojection.hh>
 
 #if FLOW == 1
 #include <dune/higher-order-bgn/meancurvatureflow.hh>
@@ -44,7 +45,7 @@ int main(int argc, char *argv[])
   double a = pt.get<double>("grid.initial.a", 1.0);
   double b = pt.get<double>("grid.initial.b", 1.0);
   double c = pt.get<double>("grid.initial.c", 1.0);
-  auto initialSurface = EllipsoidProjection<double>{a,b,c};
+  auto initialSurface = BGN::EllipsoidProjection<double>{a,b,c};
 #endif
 
   int kg = pt.get<int>("grid.kg", 2);

@@ -20,7 +20,8 @@
 #include <dune/vtk/vtkwriter.hh>
 
 #include "localfunctiongeometrydatacollector.hh"
-#include "runnerbase.hh"
+#include "runner.hh"
+#include "surfaceareavolume.hh"
 #include "umfpack2.hh"
 
 
@@ -55,17 +56,17 @@ struct PicardRunner : public RunnerBase<B,A>
 
     Vector solution_iter;
 
-    auto positionBasis = Functions::subspaceBasis(feBasis_, Indices::_0);
-    auto Xh = Functions::makeDiscreteGlobalBasisFunction<FieldVector<double,dow>>(positionBasis, solution_);
-    auto Xh_iter = Dune::Functions::makeDiscreteGlobalBasisFunction<Dune::FieldVector<double,3>>(positionBasis, solution_iter);
+    auto positionBasis = Dune::Functions::subspaceBasis(feBasis_, Indices::_0);
+    auto Xh = Dune::Functions::makeDiscreteGlobalBasisFunction<FieldVector<double,dow>>(positionBasis, solution_);
+    auto Xh_iter = Dune::Functions::makeDiscreteGlobalBasisFunction<Dune::FieldVector<double,dow>>(positionBasis, solution_iter);
 
     // define a (parallel) assembler
     auto matrix = Matrix();
-    auto matrixBackend = Assembler::ISTLMatrixBackend(matrix);
+    auto matrixBackend = Dune::Assembler::ISTLMatrixBackend(matrix);
     auto rhs = Vector();
-    auto rhsBackend = Assembler::ISTLVectorBackend(rhs);
+    auto rhsBackend = Dune::Assembler::ISTLVectorBackend(rhs);
 
-    int quadOrder = pt_.get<double>("solution.quad_order",10);
+    int quadOrder = pt_.template get<double>("solution.quad_order",10);
     auto localAssembler = flow(feBasis_, std::cref(Xh), std::cref(Xh_iter), quadOrder, tau_);
 
     auto patternBuilder = matrixBackend.patternBuilder();
@@ -75,19 +76,19 @@ struct PicardRunner : public RunnerBase<B,A>
 
     // create linear solver
     auto solver = BGN::UMFPack<Matrix>{};
-    solver.setVerbosity(pt_.get<int>("solver.verbose"));
+    solver.setVerbosity(pt_.template get<int>("solver.verbose"));
 
     rhsBackend.resize(feBasis_);
 
-    double startTime = pt_.get<double>("adapt.start_time", 0.0);
-    double endTime = pt_.get<double>("adapt.end_time", 0.03);
+    double startTime = pt_.template get<double>("adapt.start_time", 0.0);
+    double endTime = pt_.template get<double>("adapt.end_time", 0.03);
     if (outputFileName.empty())
-      outputFileName = pt_.get<std::string>("output.filename", "output.pvd");
+      outputFileName = pt_.template get<std::string>("output.filename", "output.pvd");
 
     using std::sqrt;
     double tol = sqrt(std::numeric_limits<double>::epsilon());
-    double iter_tol = (pt_.get<double>("adapt.iter_tol",1e-12));
-    int maxIter = (pt_.get<double>("adapt.maxIter",100));
+    double iter_tol = (pt_.template get<double>("adapt.iter_tol",1e-12));
+    int maxIter = (pt_.template get<double>("adapt.maxIter",100));
 
     Vtk::LocalFunctionGeometryDataCollector dataCollector{feBasis_.gridView(), Xh, Vtk::CellType::QUADRATIC};
     Vtk::UnstructuredGridWriter writer{dataCollector};
@@ -106,7 +107,9 @@ struct PicardRunner : public RunnerBase<B,A>
     for (int step = 0; t + tau_ < endTime + tol; ++step, t+= tau_)
     {
       std::cout << step << "/" << nSteps;
-      std::cout << " surface = " << BGN::surface(feBasis_.gridView(), Xh);
+      auto [area,volume] = BGN::surfaceAreaVolume(feBasis_.gridView(), Xh);
+      std::cout << " area = " << area;
+      std::cout << " volume = " << volume;
       std::cout << std::endl;
       if ((step+1) % std::max(1,nSteps/100) == 0) {
         pvdWriter.writeTimestep(t, outputFileName, "_piecefiles");
@@ -136,7 +139,7 @@ struct PicardRunner : public RunnerBase<B,A>
         iteration_error_vector.push_back(iter_error);
       }
       iteration_number_vector.push_back(iter_number);
-      solution = solution_iter;
+      solution_ = solution_iter;
     }
     pvdWriter.writeTimestep(endTime, outputFileName, "_piecefiles");
 

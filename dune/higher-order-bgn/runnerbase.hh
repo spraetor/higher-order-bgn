@@ -33,19 +33,19 @@ struct RunnerBase : public A
     , tau_(tau)
   {}
 
-  ThreadRunner (const Basis& feBasis, const Dune::ParameterTree& pt)
-    : ThreadRunner{feBasis, pt, pt.get<double>("adapt.timestep")}
+  RunnerBase (const Basis& feBasis, const Dune::ParameterTree& pt)
+    : RunnerBase{feBasis, pt, pt.get<double>("adapt.timestep")}
   {}
 
-  ThreadRunner (const Threadrunner& other)
-    : ThreadRunner{other.feBasis_, other.pt_, other.tau_}
+  RunnerBase (const RunnerBase& other)
+    : RunnerBase{other.feBasis_, other.pt_, other.tau_}
   {}
 
   // compute an initial solution
   template <class InitialSurface>
   void init (InitialSurface const& initialSurface)
   {
-    auto positionBasis = Dune::Functions::subspaceBasis(feBasis, Dune::Indices::_0);
+    auto positionBasis = Dune::Functions::subspaceBasis(feBasis_, Dune::Indices::_0);
 
     // interpolate the initial surface parametrization into the solution vector
     Dune::Functions::interpolate(positionBasis, solution_, initialSurface);

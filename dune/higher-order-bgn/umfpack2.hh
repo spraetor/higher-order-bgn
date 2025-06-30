@@ -47,7 +47,7 @@ namespace Dune::BGN {
    * \note This will only work if dune-istl has been configured to use UMFPack
    */
   template<typename M>
-  class UMFPack : public InverseOperator<Impl::UMFPackDomainType<M>,Impl::UMFPackRangeType<M>>
+  class UMFPack : public InverseOperator<Dune::Impl::UMFPackDomainType<M>,Dune::Impl::UMFPackRangeType<M>>
   {
     using T = typename M::field_type;
 
@@ -309,7 +309,7 @@ namespace Dune::BGN {
      *  UMFPACK decomposition.
      *  WARNING This is an opposite behavior of the previous implementation in `setSubMatrix`.
      */
-    template<class BitVector = Impl::NoBitVector>
+    template<class BitVector = Dune::Impl::NoBitVector>
     void setMatrix(const Matrix& matrix, const BitVector& bitVector = {}, bool keepSymbolic = false)
     {
       if ((umfpackMatrix_.N() + umfpackMatrix_.M() > 0) || matrixIsLoaded_)
@@ -320,7 +320,7 @@ namespace Dune::BGN {
       if (umfpackMatrix_.N() + umfpackMatrix_.M() + umfpackMatrix_.nonzeroes() != 0)
         umfpackMatrix_.free();
 
-      constexpr bool useBitVector = not std::is_same_v<BitVector,Impl::NoBitVector>;
+      constexpr bool useBitVector = not std::is_same_v<BitVector,Dune::Impl::NoBitVector>;
 
       // use a dynamic flat vector for the bitset
       std::vector<bool> flatBitVector;

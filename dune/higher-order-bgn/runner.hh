@@ -18,8 +18,11 @@
 #include <dune/vtk/pvdwriter.hh>
 #include <dune/vtk/vtkwriter.hh>
 
+#include "assembler.hh"
+#include "flowbasis.hh"
 #include "localfunctiongeometrydatacollector.hh"
 #include "runnerbase.hh"
+#include "surfaceareavolume.hh"
 #include "umfpack2.hh"
 
 
@@ -57,11 +60,11 @@ struct Runner : public RunnerBase<B,A>
 
     // define a (parallel) assembler
     auto matrix = Matrix();
-    auto matrixBackend = Assembler::ISTLMatrixBackend(matrix);
+    auto matrixBackend = Dune::Assembler::ISTLMatrixBackend(matrix);
     auto rhs = Vector();
-    auto rhsBackend = Assembler::ISTLVectorBackend(rhs);
+    auto rhsBackend = Dune::Assembler::ISTLVectorBackend(rhs);
 
-    int quadOrder = pt_.get<double>("solution.quad_order",10);
+    int quadOrder = pt_.template get<double>("solution.quad_order",10);
     auto localAssembler = flow(feBasis_, std::cref(Xh), quadOrder, tau_);
 
     auto patternBuilder = matrixBackend.patternBuilder();
@@ -71,14 +74,14 @@ struct Runner : public RunnerBase<B,A>
 
     // create linear solver
     auto solver = BGN::UMFPack<Matrix>{};
-    solver.setVerbosity(pt_.get<int>("solver.verbose"));
+    solver.setVerbosity(pt_.template get<int>("solver.verbose"));
 
     rhsBackend.resize(feBasis_);
 
-    double startTime = pt_.get<double>("adapt.start_time", 0.0);
-    double endTime = pt_.get<double>("adapt.end_time", 0.03);
+    double startTime = pt_.template get<double>("adapt.start_time", 0.0);
+    double endTime = pt_.template get<double>("adapt.end_time", 0.03);
     if (outputFileName.empty())
-      outputFileName = pt_.get<std::string>("output.filename", "output.pvd");
+      outputFileName = pt_.template get<std::string>("output.filename", "output.pvd");
 
     using std::sqrt;
     double tol = sqrt(std::numeric_limits<double>::epsilon());
@@ -95,7 +98,9 @@ struct Runner : public RunnerBase<B,A>
     for (int step = 0; t + tau_ < endTime + tol; ++step, t+= tau_)
     {
       std::cout << step << "/" << nSteps;
-      std::cout << " surface = " << BGN::surface(feBasis_.gridView(), Xh);
+      auto [area,volume] = BGN::surfaceAreaVolume(feBasis_.gridView(), Xh);
+      std::cout << " area = " << area;
+      std::cout << " volume = " << volume;
       std::cout << std::endl;
       if ((step+1) % std::max(1,nSteps/100) == 0) {
         pvdWriter.writeTimestep(t, outputFileName, "_piecefiles");
@@ -140,7 +145,7 @@ void run (const Dune::ParameterTree& pt, HostGrid& hostGrid, const InitialSurfac
 
   std::cout << "Compute solution..." << std::endl;
   auto feBasis = makeFlowBasis<kg>(hostGrid.leafGridView());
-  auto runner = Runner<decltype(feBasis)>{feBasis, pr, tau};
+  auto runner = Runner<decltype(feBasis)>{feBasis, pt, tau};
   runner.init(initialSurface);
   runner.run(flow, outputBase + ".pvd");
 }
